@@ -9,7 +9,16 @@ from typing import Tuple, Optional
 class AudioFileReader:
     """Audio file reader utility class."""
 
-    SUPPORTED_FORMATS = ['.wav', '.mp3']
+    SUPPORTED_FORMATS = [
+        '.wav',  
+        '.mp3',   
+        '.flac', 
+        '.ogg',  
+        '.m4a',   
+        '.aac',  
+        '.wma',   
+        '.aiff', 
+    ]
 
     def __init__(self):
         self.file_path = None
