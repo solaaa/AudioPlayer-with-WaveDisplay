@@ -1,5 +1,9 @@
 # 🎵 音频播放器 - 实时波形显示
 
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](README.md)
+[![中文](https://img.shields.io/badge/lang-中文-red.svg)](README_zh.md)
+
+
 > 一个轻量级的音频播放器，支持实时显示音频波形和自定义信号处理功能
 
 ## ✨ 项目特性

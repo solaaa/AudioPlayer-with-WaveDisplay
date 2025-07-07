@@ -1,5 +1,8 @@
 # 🎵 Audio Player - Real-time Waveform Display
 
+[![English](https://img.shields.io/badge/lang-English-blue.svg)](README.md)
+[![中文](https://img.shields.io/badge/lang-中文-red.svg)](README_zh.md)
+
 > A lightweight audio player that supports real-time audio waveform display and custom signal processing functions
 
 ## ✨ Project Features
