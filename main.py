@@ -19,8 +19,8 @@ except ImportError as e:
     sys.exit(1)
 
 
-class SpeakerProtectionApp:
-    """Speaker protection system application class.
+class MainApp:
+    """application class.
     
     This class manages the main application lifecycle including initialization,
     dependency checking, and running the GUI application.
@@ -140,7 +140,7 @@ def main():
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     
     # Create and run application
-    app = SpeakerProtectionApp()
+    app = MainApp()
     exit_code = app.run()
     
     # Exit program

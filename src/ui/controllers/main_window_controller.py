@@ -19,7 +19,7 @@ from config.config_manager import ConfigManager
 from src.ui.widgets.display_wav_widget import CustomPlotWidget
 
 class MainWindowController(QMainWindow):
-    """Main window controller for the speaker protection system.
+    """Main window controller for the system.
     
     This class manages the main application window, including UI layout,
     menu creation, dock widgets, and signal handling between components.
