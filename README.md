@@ -74,6 +74,14 @@ python main.py
     
     When running the software, the GUI includes an incomplete "Parameter Settings" page that can serve as a feature extension interface. If this functionality is not needed, the relevant parts can be removed from the code.
 
+## 📋 TODO List
+
+- **Spectrum Analysis** - Add real-time spectrum analysis and display functionality
+- **Frequency Domain Display Module** - Implement various frequency domain analysis views:
+    - Envelope Detection Plot
+    - Probability Density Plot
+    - Waterfall Plot
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

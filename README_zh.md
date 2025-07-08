@@ -75,6 +75,14 @@ python main.py
     
     软件运行时，GUI中包含一个未完成的"参数设置"页面，可作为功能扩展接口。如不需要此功能，可在代码中删除相关部分。
 
+## 📋 TODO List
+
+- **频谱分析功能** - 添加实时频谱分析和显示
+- **频域显示模块** - 实现多种频域分析视图：
+    - 检波图 (Envelope Detection)
+    - 概率密度图 (Probability Density Plot)
+    - 瀑布图 (Waterfall Plot)
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
