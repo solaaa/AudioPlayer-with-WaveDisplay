@@ -76,11 +76,16 @@ python main.py
 
 ## 📋 TODO List
 
-- **Spectrum Analysis** - Add real-time spectrum analysis and display functionality
-- **Frequency Domain Display Module** - Implement various frequency domain analysis views:
+- **Frequency Domain Analysis Module** - Add comprehensive frequency domain analysis features, including:
+    - Real-time spectrum analysis computation
     - Envelope Detection Plot
     - Probability Density Plot
     - Waterfall Plot
+- **Audio Effects Processing** - Add real-time audio processing capabilities, including:
+    - Equalizer (EQ) - Multi-band audio equalization
+    - Dynamic Range Control - Compressor/Limiter/Noise Gate
+    - Spatial Audio Effects - Stereo Enhancement, Reverb Effects
+
 
 ## 📄 License
 
