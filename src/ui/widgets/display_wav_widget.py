@@ -192,7 +192,18 @@ class CustomPlotWidget(pg.PlotWidget):
         if hasattr(self, 'flag_redraw_y_axis') == False:
             self.flag_redraw_y_axis = 1
             self._add_space_y_axis() 
- 
+
+    def plot2d(self, x_axis, y_axis, data2d):
+        img = pg.ImageItem()
+        self.addItem(img)
+        img.setImage(data2d)
+        x_min, x_max = x_axis.min(), x_axis.max()
+        y_min, y_max = y_axis.min(), y_axis.max()
+
+        img.setRect(pg.QtCore.QRectF(x_min, y_min, x_max - x_min, y_max - y_min))
+        # set colormap
+        img.setColorMap(pg.colormap.get('inferno'))
+        img.setLevels([-120, 0])
 
 if __name__ == '__main__':
     from PySide6.QtCore import QTimer

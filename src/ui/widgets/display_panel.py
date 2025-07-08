@@ -9,9 +9,11 @@ import numpy as np
 import os
 sys.path.insert(0, '.')
 from src.ui.widgets.display_wav_widget import CustomPlotWidget
-from src.core.algorithm_test.sliding_window_calculator import SlidingWindowCalculator
 from src.utils.audio.audio_player import AudioPlayer
 from src.utils.downsample import downsample_plot_data
+
+# from src.core.algorithm_test.sliding_window_calculator import SlidingWindowCalculator
+from src.core.algorithm.spectrogram.spectrogram import Spectrogram
 
 # Import resource files
 try:
@@ -30,7 +32,8 @@ class DisplayPanel(QWidget):
     """Display panel widget for audio visualization and playback control.
     
     This widget provides:
-    - Two synchronized plot widgets for audio waveform display
+    - Plot1: 1D audio waveform display
+    - Plot2: 2D spectrogram display (synchronized x-axis with plot1)
     - Audio playback controls (play/pause/stop)
     - Progress slider for seeking
     - Optimized plotting for large datasets
@@ -56,9 +59,10 @@ class DisplayPanel(QWidget):
         super().__init__(parent)
         
         # Data cache for optimizing plotting
+        # plot1: 1D data, plot2: 2D data
         self.cached_data = {
-            'plot1': {'x': None, 'y': None, 'name': None},
-            'plot2': {'x': None, 'y': None, 'name': None}
+            'plot1': {'x': None, 'y': None, 'name': None, 'type': '1d'},
+            'plot2': {'x': None, 'y': None, 'data2d': None, 'name': None, 'type': '2d'}
         }
         
         # Initialize audio player
@@ -96,7 +100,8 @@ class DisplayPanel(QWidget):
     
     def setup_algo(self):
         """Setup algorithm related parameters."""
-        self.algo = SlidingWindowCalculator(1000) # only for test
+        # self.algo = SlidingWindowCalculator(1000) # only for test
+        self.algo = Spectrogram(fft_points=1024)  # Initialize spectrogram algorithm
 
     def setup_ui(self):
         """Setup UI layout."""
@@ -107,10 +112,10 @@ class DisplayPanel(QWidget):
         
         # Create two custom subplots
         self.plot1 = CustomPlotWidget()
-        self.plot1.setTitle('子图1')
+        self.plot1.setTitle('音频波形')
         
         self.plot2 = CustomPlotWidget()
-        self.plot2.setTitle('子图2')
+        self.plot2.setTitle('时频图')
         
         main_layout.addWidget(self.plot1)
         main_layout.addWidget(self.plot2)
@@ -123,7 +128,7 @@ class DisplayPanel(QWidget):
         main_layout.setStretchFactor(self.plot1, 1)
         main_layout.setStretchFactor(self.plot2, 1)
         main_layout.setStretchFactor(control_frame, 0)
-    
+
     def create_control_frame(self):
         """Create playback control area.
         
@@ -332,12 +337,6 @@ class DisplayPanel(QWidget):
         """
         print(f"Playback error: {error_message}")
     
-    def _update_timeline_display(self):
-        """Update timeline display."""
-        # Draw timeline on both subplots
-        self.plot1.draw_timeline(self.current_timeline, color='red', width=2)
-        self.plot2.draw_timeline(self.current_timeline, color='red', width=2)
-    
     def set_progress(self, value):
         """Set progress slider position.
         
@@ -396,14 +395,14 @@ class DisplayPanel(QWidget):
         try:
             # Get view range
             view_range = self.view_box1.viewRange() if plot_str == 'plot1' else self.view_box2.viewRange()
-            # Set the second subplot's view range
-            # NOTE: Only synchronize x-axis range
+            # Set the other subplot's x-axis range (only synchronize x-axis)
             if plot_str == 'plot1':
+                # plot1 changed, sync x-axis to plot2
                 self.view_box2.setRange(xRange=view_range[0], padding=0)
             else:
+                # plot2 changed, sync x-axis to plot1
                 self.view_box1.setRange(xRange=view_range[0], padding=0)
                 
-            
         finally:
             self._sync_in_progress = False
     
@@ -426,7 +425,7 @@ class DisplayPanel(QWidget):
         cached_data = self.cached_data[plot_name]
         
         # Check if cached data exists
-        if cached_data['x'] is None or cached_data['y'] is None:
+        if cached_data['x'] is None:
             return
         
         # Get current x-axis display range
@@ -438,11 +437,29 @@ class DisplayPanel(QWidget):
         x_min_buffered = x_min - buffer
         x_max_buffered = x_max + buffer
         
+        # Handle different data types
+        if cached_data['type'] == '1d':
+            self._optimize_1d_plot(plot_widget, cached_data, x_min_buffered, x_max_buffered, plot_name)
+        elif cached_data['type'] == '2d':
+            self._optimize_2d_plot(plot_widget, cached_data, x_min_buffered, x_max_buffered, plot_name)
+
+    def _optimize_1d_plot(self, plot_widget, cached_data, x_min, x_max, plot_name):
+        """Optimize 1D plot display.
+        
+        Args:
+            plot_widget: Plot widget instance
+            cached_data: Cached data dictionary
+            x_min, x_max: X-axis range
+            plot_name: Plot name
+        """
+        if cached_data['y'] is None:
+            return
+            
         # Find data indices within display range
         full_x = cached_data['x']
         full_y = cached_data['y']
         
-        mask = (full_x >= x_min_buffered) & (full_x <= x_max_buffered)
+        mask = (full_x >= x_min) & (full_x <= x_max)
         visible_x = full_x[mask]
         visible_y = full_y[mask]
         
@@ -453,7 +470,6 @@ class DisplayPanel(QWidget):
                 step = 1
 
             visible_x, visible_y = downsample_plot_data(
-                # visible_x, visible_y, method='bypass', step=step
                 visible_x, visible_y, method='abs_max', step=step
             )
         
@@ -462,10 +478,53 @@ class DisplayPanel(QWidget):
         pen_color = 'y' if plot_name == 'plot1' else 'g'
         plot_widget.plot(visible_x, visible_y, pen=pen_color, name=cached_data['name'])
 
-        # Draw timeline
-        if x_min_buffered <= self.current_timeline <= x_max_buffered:
-            self._update_timeline_display()
-    
+        # Draw timeline if in visible range
+        if x_min <= self.current_timeline <= x_max:
+            plot_widget.draw_timeline(self.current_timeline, color='red', width=2)
+
+    def _optimize_2d_plot(self, plot_widget, cached_data, x_min, x_max, plot_name):
+        """Optimize 2D plot display.
+        
+        Args:
+            plot_widget: Plot widget instance
+            cached_data: Cached data dictionary
+            x_min, x_max: X-axis range
+            plot_name: Plot name
+        """
+        if cached_data['data2d'] is None or cached_data['y'] is None:
+            return
+            
+        full_x = cached_data['x']
+        full_y = cached_data['y']  # frequency axis
+        full_data2d = cached_data['data2d']
+        
+        # Find x-axis indices within display range
+        x_mask = (full_x >= x_min) & (full_x <= x_max)
+        x_indices = np.where(x_mask)[0]
+        
+        if len(x_indices) == 0:
+            return
+            
+        # Extract visible data
+        visible_x = full_x[x_indices]
+        visible_data2d = full_data2d[:, x_indices]  # Keep all frequencies, subset time
+        
+        # Optional: downsample in time dimension if too many points
+        if len(visible_x) > self.MAX_DISPLAY_LEN_1D:
+            step = len(visible_x) // self.MAX_DISPLAY_LEN_1D
+            if step < 1:
+                step = 1
+            visible_x = visible_x[::step]
+            visible_data2d = visible_data2d[:, ::step]
+        
+        # Redraw 2D data
+        plot_widget.clear()
+        plot_widget.plot2d(visible_x, full_y, visible_data2d)
+        
+        # Draw timeline if in visible range
+        if x_min <= self.current_timeline <= x_max:
+            plot_widget.draw_timeline(self.current_timeline, color='red', width=2)
+
     def plot_data_optimized(self, plot_name, x_data, y_data, name="数据", pen_color='b'):
         """Optimized data plotting method.
         
@@ -483,7 +542,8 @@ class DisplayPanel(QWidget):
             self.cached_data[plot_name] = {
                 'x': np.array(x_data),
                 'y': np.array(y_data),
-                'name': name
+                'name': name,
+                'type': '1d'
             }
             
             # Initial drawing (if data is large, downsample first)
@@ -508,7 +568,58 @@ class DisplayPanel(QWidget):
             plot_widget.clear()
             plot_widget.plot(x_data, y_data, pen=pen_color, name=name)
             plot_widget.autoRange()
-    
+
+    def plot_data_2d(self, plot_name, x_axis, y_axis, data2d, name="2D数据"):
+        """Plot 2D data with optimization support.
+        
+        Args:
+            plot_name (str): 'plot1' or 'plot2'.
+            x_axis (np.ndarray): X-axis data (time).
+            y_axis (np.ndarray): Y-axis data (frequency).
+            data2d (np.ndarray): 2D data array (frequency x time).
+            name (str): Data name.
+        """
+        plot_widget = self.plot1 if plot_name == 'plot1' else self.plot2
+        
+        if self.FLAG_OPTIMIZE_PLOT and 0:
+            # Cache 2D data
+            self.cached_data[plot_name] = {
+                'x': np.array(x_axis),
+                'y': np.array(y_axis),
+                'data2d': np.array(data2d),
+                'name': name,
+                'type': '2d'
+            }
+            
+            # Initial drawing with potential downsampling
+            if len(x_axis) > self.MAX_DISPLAY_LEN_1D:
+                step = len(x_axis) // self.MAX_DISPLAY_LEN_1D
+                if step < 1:
+                    step = 1
+                plot_x = x_axis[::step]
+                plot_data2d = data2d[:, ::step]
+            else:
+                plot_x = x_axis
+                plot_data2d = data2d
+            
+            plot_widget.clear()
+            plot_widget.plot2d(plot_x, y_axis, plot_data2d)
+            plot_widget.autoRange()
+        else:
+            # Draw all data directly
+            plot_widget.clear()
+            plot_widget.plot2d(x_axis, y_axis, data2d)
+            plot_widget.autoRange()
+            
+            # Store data info for timeline drawing
+            self.cached_data[plot_name] = {
+                'x': np.array(x_axis),
+                'y': np.array(y_axis),
+                'data2d': np.array(data2d),
+                'name': name,
+                'type': '2d'
+            }
+
     def plot_audio_waveform(self, audio_reader, channel=0):
         """Plot audio waveform (optimized version).
         
@@ -538,16 +649,29 @@ class DisplayPanel(QWidget):
         else:
             print("Failed to load audio data to player")
         
-        # Use optimized plotting method
+        # Store audio reader reference
+        self.audio_reader = audio_reader
         audio_info = audio_reader.get_audio_info()
-        file_name = os.path.basename(audio_info['file_path']) if audio_info['file_path'] else 'Unknown file'
-        name = f'音频波形 - 通道{channel+1}'
         
-        self.plot_data_optimized('plot1', time_axis, audio_data, name, 'y')
+        # Plot 1D waveform in plot1
+        name1 = f'音频波形 - 通道{channel+1}'
+        self.plot_data_optimized('plot1', time_axis, audio_data, name1, 'y')
         
-        # Calculate and draw plot2
-        algo_res = self.apply_algorithm(audio_data)
-        self.plot_data_optimized('plot2', time_axis, algo_res, '', 'y')
+        # Calculate and plot 2D spectrogram in plot2
+        try:
+            freq_axis, time_axis_spec, spec, spec_db = self.apply_algorithm(audio_data)
+            name2 = f'时频图 - 通道{channel+1}'
+            
+            # Use spectrogram in dB for better visualization
+            self.plot_data_2d('plot2', time_axis_spec, freq_axis, spec_db, name2)
+            
+            print(f"Spectrogram plotted - Shape: {spec_db.shape}, Time range: {time_axis_spec[0]:.2f}-{time_axis_spec[-1]:.2f}s, Freq range: {freq_axis[0]:.1f}-{freq_axis[-1]:.1f}Hz")
+            
+        except Exception as e:
+            print(f"Error calculating spectrogram: {e}")
+            # Fallback: clear plot2 if spectrogram calculation fails
+            self.plot2.clear()
+            self.cached_data['plot2'] = {'x': None, 'y': None, 'data2d': None, 'name': None, 'type': '2d'}
 
         print(f"Audio waveform plotted (optimization mode: {self.FLAG_OPTIMIZE_PLOT}) - Channel{channel+1}, Duration: {audio_info['duration']:.2f}s")
         if self.FLAG_OPTIMIZE_PLOT:
@@ -563,8 +687,8 @@ class DisplayPanel(QWidget):
         
         # Clear cached data
         self.cached_data = {
-            'plot1': {'x': None, 'y': None, 'name': None},
-            'plot2': {'x': None, 'y': None, 'name': None}
+            'plot1': {'x': None, 'y': None, 'name': None, 'type': '1d'},
+            'plot2': {'x': None, 'y': None, 'data2d': None, 'name': None, 'type': '2d'}
         }
         
         # Reset timeline
@@ -574,7 +698,13 @@ class DisplayPanel(QWidget):
         self.set_progress(0)
         self._update_play_pause_button(False)
         print("Plots cleared, playback stopped")
-    
+
+    def _update_timeline_display(self):
+        """Update timeline display for both 1D and 2D plots."""
+        # Draw timeline on both subplots
+        self.plot1.draw_timeline(self.current_timeline, color='red', width=2)
+        self.plot2.draw_timeline(self.current_timeline, color='red', width=2)
+
     def get_audio_player(self):
         """Get audio player instance.
         
@@ -597,43 +727,53 @@ class DisplayPanel(QWidget):
             return
         
         # result = self.algo.calculate(data)
-        result = self.algo.calculate_vectorized(data)
-        '''
-        {
-            'mean': means,
-            'max': maxs,
-            'min': mins
-        }
-        '''
-        ret = result['max']
+        # result = self.algo.calculate_vectorized(data)
+        # ret = result['max']
 
-        return ret
+        audio_info = self.audio_reader.get_audio_info()
+        ret = self.algo.calculate(data, fs=audio_info['sample_rate'], overlap_percent=50)
+
+        return ret['frequencies'], ret['t'], ret['spectrogram'].T, ret['spectrogram_db'].T
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     
     # Create main window
     window = DisplayPanel()
-    window.setWindowTitle('DisplayPanel Debug Window - Custom Widget Demo')
+    window.setWindowTitle('DisplayPanel Debug Window - 1D/2D Mixed Display Demo')
     window.resize(800, 600)
     
-    # Generate richer sample data (simulating audio waveform)
-    t = np.linspace(0, 100, 100000)  # Increase data size to test optimization
-    y1 = np.sin(2 * np.pi * t) * np.exp(-t/5) + 0.2 * np.random.normal(size=len(t))
-    y2 = 0.8 * np.cos(4 * np.pi * t) * np.exp(-t/8) + 0.1 * np.sin(10 * np.pi * t)
+    # Generate sample data for testing
+    # 1D data for plot1
+    t1 = np.linspace(0, 10, 10000)
+    y1 = np.sin(2 * np.pi * t1) * np.exp(-t1/5) + 0.2 * np.random.normal(size=len(t1))
     
-    # Use optimized plotting method
-    window.plot_data_optimized('plot1', t, y1, 'Signal 1 - Decaying Sine Wave', 'b')
-    window.plot_data_optimized('plot2', t, y2, 'Signal 2 - Composite Waveform', 'r')
+    # 2D data for plot2 (simulated spectrogram)
+    t2 = np.linspace(0, 10, 100)  # Time axis for spectrogram
+    f2 = np.linspace(0, 1000, 128)  # Frequency axis
+    # Create synthetic spectrogram data
+    spec_data = np.zeros((len(f2), len(t2)))
+    for i, freq in enumerate(f2):
+        for j, time in enumerate(t2):
+            # Create some patterns
+            spec_data[i, j] = np.exp(-(freq-200)**2/10000) * np.sin(2*np.pi*time) + \
+                             np.exp(-(freq-600)**2/20000) * np.cos(4*np.pi*time) + \
+                             0.1 * np.random.random()
     
-    print(f"Optimized plotting mode: {window.FLAG_OPTIMIZE_PLOT}")
-    print(f"Maximum display points: {window.MAX_DISPLAY_LEN_1D}")
-    print(f"Total data length: {len(t)}")
+    # Convert to dB scale
+    spec_data_db = 20 * np.log10(np.maximum(spec_data, 1e-10))
+    
+    # Use optimized plotting methods
+    window.plot_data_optimized('plot1', t1, y1, 'Test Signal', 'b')
+    window.plot_data_2d('plot2', t2, f2, spec_data_db, 'Test Spectrogram')
+    
+    print(f"Mixed plotting demo - 1D data: {len(t1)} points, 2D data: {spec_data.shape}")
+    print(f"Optimization enabled: {window.FLAG_OPTIMIZE_PLOT}")
     
     # Dynamic timeline parameters
     current_time = 0.0
     time_step = 0.05
-    max_time = 100.0
+    max_time = 10.0
     is_playing = False
     
     def update_timeline():
