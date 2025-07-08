@@ -44,8 +44,8 @@
 
 ### 1. 克隆项目
 ```bash
-git clone <repository-url>
-cd MusicPlayer-With-WaveDisplay
+git clone https://github.com/solaaa/AudioPlayer-with-WaveDisplay.git
+cd AudioPlayer-with-WaveDisplay
 ```
 
 ### 2. 安装依赖

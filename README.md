@@ -43,8 +43,8 @@
 
 ### 1. Clone the Project
 ```bash
-git clone <repository-url>
-cd MusicPlayer-With-WaveDisplay
+git clone https://github.com/solaaa/AudioPlayer-with-WaveDisplay.git
+cd AudioPlayer-with-WaveDisplay
 ```
 
 ### 2. Install Dependencies
