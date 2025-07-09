@@ -88,6 +88,9 @@ class DisplayPanel(QWidget):
         
         # Add drag state tracking
         self._was_playing_before_drag = False
+        
+        # Add parameter setting panel reference
+        self.param_setting_panel = None
 
     def _setup_audio_player_signals(self):
         """Setup audio player signal connections."""
@@ -517,9 +520,15 @@ class DisplayPanel(QWidget):
             visible_x = visible_x[::step]
             visible_data2d = visible_data2d[:, ::step]
         
+        # Get colormap from param panel if available
+        colormap = "inferno"  # default
+        if self.param_setting_panel:
+            params = self.param_setting_panel.get_param_data()
+            colormap = params.get("colormap", "inferno")
+        
         # Redraw 2D data
         plot_widget.clear()
-        plot_widget.plot2d(visible_x, full_y, visible_data2d)
+        plot_widget.plot2d(visible_x, full_y, visible_data2d, colormap=colormap)
         
         # Draw timeline if in visible range
         if x_min <= self.current_timeline <= x_max:
@@ -569,7 +578,7 @@ class DisplayPanel(QWidget):
             plot_widget.plot(x_data, y_data, pen=pen_color, name=name)
             plot_widget.autoRange()
 
-    def plot_data_2d(self, plot_name, x_axis, y_axis, data2d, name="2D数据"):
+    def plot_data_2d(self, plot_name, x_axis, y_axis, data2d, name="2D数据", colormap="inferno"):
         """Plot 2D data with optimization support.
         
         Args:
@@ -578,6 +587,7 @@ class DisplayPanel(QWidget):
             y_axis (np.ndarray): Y-axis data (frequency).
             data2d (np.ndarray): 2D data array (frequency x time).
             name (str): Data name.
+            colormap (str): Colormap name for visualization.
         """
         plot_widget = self.plot1 if plot_name == 'plot1' else self.plot2
         
@@ -603,12 +613,13 @@ class DisplayPanel(QWidget):
                 plot_data2d = data2d
             
             plot_widget.clear()
-            plot_widget.plot2d(plot_x, y_axis, plot_data2d)
+            plot_widget.plot2d(plot_x, y_axis, plot_data2d, colormap=colormap)
             plot_widget.autoRange()
         else:
             # Draw all data directly
             plot_widget.clear()
-            plot_widget.plot2d(x_axis, y_axis, data2d)
+            plot_widget.plot2d(x_axis, y_axis, data2d, colormap=colormap)
+        
             plot_widget.autoRange()
             
             # Store data info for timeline drawing
@@ -659,13 +670,13 @@ class DisplayPanel(QWidget):
         
         # Calculate and plot 2D spectrogram in plot2
         try:
-            freq_axis, time_axis_spec, spec, spec_db = self.apply_algorithm(audio_data)
+            freq_axis, time_axis_spec, spec, spec_db, colormap = self.apply_algorithm(audio_data)
             name2 = f'时频图 - 通道{channel+1}'
             
             # Use spectrogram in dB for better visualization
-            self.plot_data_2d('plot2', time_axis_spec, freq_axis, spec_db, name2)
+            self.plot_data_2d('plot2', time_axis_spec, freq_axis, spec_db, name2, colormap)
             
-            print(f"Spectrogram plotted - Shape: {spec_db.shape}, Time range: {time_axis_spec[0]:.2f}-{time_axis_spec[-1]:.2f}s, Freq range: {freq_axis[0]:.1f}-{freq_axis[-1]:.1f}Hz")
+            print(f"Spectrogram plotted - Shape: {spec_db.shape}, Time range: {time_axis_spec[0]:.2f}-{time_axis_spec[-1]:.2f}s, Freq range: {freq_axis[0]:.1f}-{freq_axis[-1]:.1f}Hz, Colormap: {colormap}")
             
         except Exception as e:
             print(f"Error calculating spectrogram: {e}")
@@ -713,6 +724,14 @@ class DisplayPanel(QWidget):
         """
         return self.audio_player
     
+    def set_param_setting_panel(self, param_setting_panel):
+        """Set parameter setting panel reference.
+        
+        Args:
+            param_setting_panel: Parameter setting panel controller instance.
+        """
+        self.param_setting_panel = param_setting_panel
+
     def apply_algorithm(self, data):
         """Apply algorithm to process data.
         
@@ -720,20 +739,87 @@ class DisplayPanel(QWidget):
             data (np.ndarray): Input data.
             
         Returns:
-            np.ndarray: Processed result.
+            tuple: (frequencies, time_axis, spectrogram, spectrogram_db)
         """
         if not self.algo:
             print("Algorithm not initialized")
             return
         
-        # result = self.algo.calculate(data)
-        # result = self.algo.calculate_vectorized(data)
-        # ret = result['max']
-
+        # Get audio info
         audio_info = self.audio_reader.get_audio_info()
-        ret = self.algo.calculate(data, fs=audio_info['sample_rate'], overlap_percent=50)
+        
+        # Get parameters from param setting panel
+        if self.param_setting_panel:
+            params = self.param_setting_panel.get_param_data()
+            overlap_percent = int(params["overlap"] * 100)  # Convert to percentage
+            window_type = params["window"]
+            nfft = params["nfft"]
+            colormap = params["colormap"]
+            
+            print(f"Using STFT parameters: overlap={overlap_percent}%, window={window_type}, nfft={nfft}, colormap={colormap}")
+        else:
+            # Use default parameters if no param panel is set
+            overlap_percent = 50
+            window_type = "hann"
+            nfft = 1024
+            colormap = "inferno"
+            print("Using default STFT parameters: overlap=50%, window=hann, nfft=1024, colormap=inferno")
+        
+        # Update algorithm parameters
+        self.algo.fft_points = nfft
+        self.algo.window = window_type
+        
+        # Calculate spectrogram with specified parameters
+        ret = self.algo.calculate(data, fs=audio_info['sample_rate'], overlap_percent=overlap_percent)
 
-        return ret['frequencies'], ret['t'], ret['spectrogram'].T, ret['spectrogram_db'].T
+        return ret['frequencies'], ret['t'], ret['spectrogram'].T, ret['spectrogram_db'].T, colormap
+
+    def recompute_and_plot(self):
+        """Recompute and plot based on current parameters.
+        
+        This method is called when user clicks the "Execute" button.
+        """
+        if not self.audio_reader or not self.audio_reader.is_loaded():
+            print("No audio data available for recomputation")
+            return
+        
+        # Get current audio data
+        audio_data = self.audio_reader.get_channel_data(0)  # Use first channel
+        if audio_data is None:
+            print("Unable to get audio data for recomputation")
+            return
+        
+        # Stop current playback
+        self.audio_player.stop()
+        
+        # Get time axis
+        time_axis = self.audio_reader.get_time_axis()
+        
+        # Plot 1D waveform in plot1
+        name1 = '音频波形 - 通道1'
+        self.plot_data_optimized('plot1', time_axis, audio_data, name1, 'y')
+        
+        # Recalculate and plot 2D spectrogram in plot2
+        try:
+            freq_axis, time_axis_spec, spec, spec_db, colormap = self.apply_algorithm(audio_data)
+            name2 = '时频图 - 通道1'
+            
+            # Use spectrogram in dB for better visualization
+            self.plot_data_2d('plot2', time_axis_spec, freq_axis, spec_db, name2, colormap)
+            
+            print(f"Spectrogram recomputed and plotted - Shape: {spec_db.shape}, Time range: {time_axis_spec[0]:.2f}-{time_axis_spec[-1]:.2f}s, Freq range: {freq_axis[0]:.1f}-{freq_axis[-1]:.1f}Hz, Colormap: {colormap}")
+            
+        except Exception as e:
+            print(f"Error recomputing spectrogram: {e}")
+            # Fallback: clear plot2 if spectrogram calculation fails
+            self.plot2.clear()
+            self.cached_data['plot2'] = {'x': None, 'y': None, 'data2d': None, 'name': None, 'type': '2d'}
+        
+        # Reset timeline
+        self.current_timeline = 0.0
+        self._update_timeline_display()
+        
+        print("Recomputation and plotting completed")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

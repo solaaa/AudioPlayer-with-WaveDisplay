@@ -13,6 +13,8 @@ class ParamSettingPanelController(QWidget):
     
     # 定义信号
     param_changed = Signal(str, object)  # 参数名, 参数值
+    implement_clicked = Signal()  # 执行按钮点击信号
+    reset_clicked = Signal()  # 重置按钮点击信号
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,56 +31,91 @@ class ParamSettingPanelController(QWidget):
     
     def _connect_signals(self):
         """连接信号槽"""
-        self.ui.lineEdit.textChanged.connect(self._on_line_edit_changed)
-        self.ui.comboBox.currentTextChanged.connect(self._on_combo_box_changed)
-        self.ui.spinBox.valueChanged.connect(self._on_spin_box_changed)
-        self.ui.textEdit.textChanged.connect(self._on_text_edit_changed)
+        # STFT参数控件信号连接
+        self.ui.cb_stft_overlap.currentTextChanged.connect(self._on_overlap_changed)
+        self.ui.cb_stft_window.currentTextChanged.connect(self._on_window_changed)
+        self.ui.comboBox.currentTextChanged.connect(self._on_nfft_changed)
+        self.ui.cb_stft_colormap.currentTextChanged.connect(self._on_colormap_changed)
+        
+        # 按钮信号连接
+        self.ui.pb_para_setting_panel_implement.clicked.connect(self._on_implement_clicked)
+        self.ui.pb_para_setting_panel_reset.clicked.connect(self._on_reset_clicked)
     
     def _init_data(self):
         """初始化数据"""
-        # 设置默认值
-        self.ui.lineEdit.setText("默认参数")
-        self.ui.spinBox.setValue(0)
-        self.ui.textEdit.setPlainText("参数描述...")
+        # 设置默认值（UI文件中已设置默认索引）
+        pass
     
-    def _on_line_edit_changed(self, text):
-        """处理文本输入框变化"""
-        self.param_changed.emit("name", text)
+    def _on_overlap_changed(self, text):
+        """处理重叠率变化"""
+        # 将百分比文本转换为数值
+        overlap_value = int(text.replace('%', '')) / 100.0
+        self.param_changed.emit("overlap", overlap_value)
     
-    def _on_combo_box_changed(self, text):
-        """处理组合框选择变化"""
-        self.param_changed.emit("type", text)
+    def _on_window_changed(self, text):
+        """处理窗函数变化"""
+        self.param_changed.emit("window", text)
     
-    def _on_spin_box_changed(self, value):
-        """处理数值输入框变化"""
-        self.param_changed.emit("value", value)
+    def _on_nfft_changed(self, text):
+        """处理NFFT变化"""
+        nfft_value = int(text)
+        self.param_changed.emit("nfft", nfft_value)
     
-    def _on_text_edit_changed(self):
-        """处理文本编辑器变化"""
-        text = self.ui.textEdit.toPlainText()
-        self.param_changed.emit("description", text)
+    def _on_colormap_changed(self, text):
+        """处理颜色映射变化"""
+        self.param_changed.emit("colormap", text)
+    
+    def _on_implement_clicked(self):
+        """处理执行按钮点击"""
+        self.implement_clicked.emit()
+    
+    def _on_reset_clicked(self):
+        """处理重置按钮点击"""
+        self.reset_clicked.emit()
+        self._reset_to_default()
+    
+    def _reset_to_default(self):
+        """重置到默认值"""
+        self.ui.cb_stft_overlap.setCurrentIndex(2)  # 50%
+        self.ui.cb_stft_window.setCurrentIndex(0)   # hann
+        self.ui.comboBox.setCurrentIndex(3)         # 1024
+        self.ui.cb_stft_colormap.setCurrentIndex(0) # inferno
     
     def get_param_data(self):
         """获取当前参数数据"""
+        overlap_text = self.ui.cb_stft_overlap.currentText()
+        overlap_value = int(overlap_text.replace('%', '')) / 100.0
+        
         return {
-            "name": self.ui.lineEdit.text(),
-            "type": self.ui.comboBox.currentText(),
-            "value": self.ui.spinBox.value(),
-            "description": self.ui.textEdit.toPlainText()
+            "overlap": overlap_value,
+            "window": self.ui.cb_stft_window.currentText(),
+            "nfft": int(self.ui.comboBox.currentText()),
+            "colormap": self.ui.cb_stft_colormap.currentText()
         }
     
     def set_param_data(self, data):
         """设置参数数据"""
-        if "name" in data:
-            self.ui.lineEdit.setText(data["name"])
-        if "type" in data:
-            index = self.ui.comboBox.findText(data["type"])
+        if "overlap" in data:
+            overlap_percent = f"{int(data['overlap'] * 100)}%"
+            index = self.ui.cb_stft_overlap.findText(overlap_percent)
+            if index >= 0:
+                self.ui.cb_stft_overlap.setCurrentIndex(index)
+        
+        if "window" in data:
+            index = self.ui.cb_stft_window.findText(data["window"])
+            if index >= 0:
+                self.ui.cb_stft_window.setCurrentIndex(index)
+        
+        if "nfft" in data:
+            nfft_text = str(data["nfft"])
+            index = self.ui.comboBox.findText(nfft_text)
             if index >= 0:
                 self.ui.comboBox.setCurrentIndex(index)
-        if "value" in data:
-            self.ui.spinBox.setValue(data["value"])
-        if "description" in data:
-            self.ui.textEdit.setPlainText(data["description"])
+        
+        if "colormap" in data:
+            index = self.ui.cb_stft_colormap.findText(data["colormap"])
+            if index >= 0:
+                self.ui.cb_stft_colormap.setCurrentIndex(index)
 
 
 if __name__ == '__main__':
@@ -86,21 +123,30 @@ if __name__ == '__main__':
     
     # 创建并显示控件
     widget = ParamSettingPanelController()
-    widget.setWindowTitle("参数设置面板测试")
+    widget.setWindowTitle("STFT参数设置面板测试")
     widget.show()
     
     # 连接信号用于测试
     def on_param_changed(param_name, param_value):
         print(f"参数变化: {param_name} = {param_value}")
     
+    def on_implement_clicked():
+        print("执行按钮被点击")
+        print("当前参数:", widget.get_param_data())
+    
+    def on_reset_clicked():
+        print("重置按钮被点击")
+    
     widget.param_changed.connect(on_param_changed)
+    widget.implement_clicked.connect(on_implement_clicked)
+    widget.reset_clicked.connect(on_reset_clicked)
     
     # 设置测试数据
     test_data = {
-        "name": "测试参数",
-        "type": "浮点数",
-        "value": 42,
-        "description": "这是一个测试参数的描述信息"
+        "overlap": 0.75,
+        "window": "hamming",
+        "nfft": 2048,
+        "colormap": "turbo"
     }
     widget.set_param_data(test_data)
     

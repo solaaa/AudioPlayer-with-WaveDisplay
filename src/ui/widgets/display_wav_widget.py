@@ -193,7 +193,7 @@ class CustomPlotWidget(pg.PlotWidget):
             self.flag_redraw_y_axis = 1
             self._add_space_y_axis() 
 
-    def plot2d(self, x_axis, y_axis, data2d):
+    def plot2d(self, x_axis, y_axis, data2d, colormap):
         img = pg.ImageItem()
         self.addItem(img)
         img.setImage(data2d)
@@ -202,7 +202,7 @@ class CustomPlotWidget(pg.PlotWidget):
 
         img.setRect(pg.QtCore.QRectF(x_min, y_min, x_max - x_min, y_max - y_min))
         # set colormap
-        img.setColorMap(pg.colormap.get('inferno'))
+        img.setColorMap(pg.colormap.get(colormap))
         img.setLevels([-120, 0])
 
 if __name__ == '__main__':

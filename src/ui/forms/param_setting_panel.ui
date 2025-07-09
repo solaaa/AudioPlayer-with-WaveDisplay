@@ -15,55 +15,37 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="pb_para_setting_panel_implement">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>100</height>
+        </size>
+       </property>
        <property name="text">
-        <string>TextLabel</string>
+        <string>执行</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="lineEdit">
-       <property name="text">
-        <string>123</string>
+     <item>
+      <widget class="QPushButton" name="pb_para_setting_panel_reset">
+       <property name="minimumSize">
+        <size>
+         <width>100</width>
+         <height>100</height>
+        </size>
        </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>TextLabel</string>
+        <string>重置</string>
        </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>TextLabel</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QSpinBox" name="spinBox"/>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="comboBox">
-       <item>
-        <property name="text">
-         <string>1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>3</string>
-        </property>
-       </item>
       </widget>
      </item>
     </layout>
@@ -71,7 +53,183 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QTextEdit" name="textEdit"/>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>频谱控制</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QGridLayout" name="gridLayout_2">
+          <item row="2" column="1">
+           <widget class="QComboBox" name="comboBox">
+            <property name="currentIndex">
+             <number>3</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>128</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>256</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>512</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>1024</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>2048</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>4096</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>9192</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>窗函数(Window)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="cb_stft_overlap">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="currentIndex">
+             <number>2</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>0%</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>25%</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>50%</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>75%</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>NFFT</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>重叠率(Overlap)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>频谱颜色映射(Colormap)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="cb_stft_colormap">
+            <item>
+             <property name="text">
+              <string>inferno</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>turbo</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>plasma</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>viridis</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>cividis</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>magma</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="cb_stft_window">
+            <item>
+             <property name="text">
+              <string>hann</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>hamming</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>triang</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>boxcar</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>blackman</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
      </item>
     </layout>
    </item>

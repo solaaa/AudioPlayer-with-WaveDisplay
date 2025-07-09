@@ -211,6 +211,15 @@ class MainWindowController(QMainWindow):
         # Parameter change signals
         self.param_panel.param_changed.connect(self._on_param_changed)
         
+        # Connect execute button signal to DisplayPanel's recompute_and_plot method
+        self.param_panel.implement_clicked.connect(self.display_panel.recompute_and_plot)
+        
+        # Connect reset button signal
+        self.param_panel.reset_clicked.connect(self._on_param_reset)
+        
+        # Set parameter setting panel reference in DisplayPanel
+        self.display_panel.set_param_setting_panel(self.param_panel)
+        
         # Playback control signals - now handled internally by DisplayPanel's AudioPlayer
         # Here we mainly handle status updates
         self.display_panel.play_clicked.connect(self._on_play_state_changed)
@@ -481,6 +490,12 @@ class MainWindowController(QMainWindow):
         if audio_player:
             audio_player.stop()
         print("Auto-stop playback before loading new audio")
+    
+    @Slot()
+    def _on_param_reset(self):
+        """Handle parameter reset event."""
+        self.status_bar.showMessage("参数已重置为默认值", 2000)
+        print("Parameters reset to default values")
 
 
 if __name__ == '__main__':

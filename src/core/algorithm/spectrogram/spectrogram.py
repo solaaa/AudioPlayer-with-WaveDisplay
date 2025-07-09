@@ -6,17 +6,18 @@ class Spectrogram:
     A class to calculate the spectrogram of a time-domain signal using STFT.
     """
 
-    def __init__(self, fft_points=1024):
+    def __init__(self, fft_points=1024, window='hann'):
         """
         Initializes the Spectrogram processor.
 
         Args:
             fft_points (int): The number of FFT points to use. Defaults to 1024.
+            window (str): Window function type. Defaults to 'hann'.
         """
         if fft_points <= 0 or (fft_points & (fft_points - 1)) != 0:
             raise ValueError("fft_points must be a positive power of 2.")
         self.fft_points = fft_points
-        self.window = 'hann'  # Default window
+        self.window = window
 
     def calculate(self, signal, fs, overlap_percent=50):
         """
@@ -40,6 +41,8 @@ class Spectrogram:
 
         nperseg = self.fft_points
         noverlap = int(nperseg * (overlap_percent / 100.0))
+
+        print(f"STFT计算参数: nperseg={nperseg}, noverlap={noverlap}, window={self.window}, nfft={self.fft_points}")
 
         f, t, zxx = stft(
             signal,
