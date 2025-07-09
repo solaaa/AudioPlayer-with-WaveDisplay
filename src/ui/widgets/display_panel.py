@@ -410,7 +410,7 @@ class DisplayPanel(QWidget):
         """Setup range change optimization."""
         # Connect range change signals to optimization handler
         self.plot1.sigRangeChanged.connect(lambda: self._on_plot_range_changed_optimize('plot1'))
-        self.plot2.sigRangeChanged.connect(lambda: self._on_plot_range_changed_optimize('plot2'))
+        # self.plot2.sigRangeChanged.connect(lambda: self._on_plot_range_changed_optimize('plot2'))
     
     def _on_plot_range_changed_optimize(self, plot_name):
         """When display range changes, only draw data in visible area.
